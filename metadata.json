@@ -1,0 +1,7 @@
+{
+  "name": "Digital Bus Pass - TCS Olympus",
+  "description": "Interactive Digital Bus Pass mobile application reproducing the TCS bus pass UI with QR code verification, pass management, and Netlify deployment readiness.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
