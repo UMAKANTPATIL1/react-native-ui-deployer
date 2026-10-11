@@ -27,6 +27,10 @@ const INITIAL_PASS_DATA: BusPassData = {
   endDate: '30-October-2026',
   officeInTime: '10:20',
   officeOutTime: '20:45',
+  dropTime: '20:45',
+  dropLabel: 'Drop Time',
+  pickupTime: '10:20',
+  pickupLabel: 'Office In Time',
   origin: 'Thane Stn. E Kopari',
   destination: 'TCS Olympus',
   routeDescription: 'Route: Thane Stn. E kopari To TCS Olympus And Return Via-FAST',
@@ -63,11 +67,13 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
 export default function App() {
   const [passData, setPassData] = useState<BusPassData>(INITIAL_PASS_DATA);
   const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+  const [transitMode, setTransitMode] = useState<'pickup' | 'drop'>('pickup');
 
   // Modals
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [highlightDropInEdit, setHighlightDropInEdit] = useState(false);
   const [codeModalOpen, setCodeModalOpen] = useState(false);
   const [routeMapOpen, setRouteMapOpen] = useState(false);
 
@@ -86,7 +92,28 @@ export default function App() {
 
   const handleResetPass = () => {
     setPassData(INITIAL_PASS_DATA);
+    setTransitMode('pickup');
     showToast('Reset to original pass details');
+  };
+
+  const handleOpenEdit = () => {
+    setHighlightDropInEdit(false);
+    setEditModalOpen(true);
+  };
+
+  const handleOpenEditDrop = () => {
+    setHighlightDropInEdit(true);
+    setTransitMode('drop');
+    setEditModalOpen(true);
+  };
+
+  const handleUpdateDropTime = (newTime: string) => {
+    setPassData((prev) => ({
+      ...prev,
+      dropTime: newTime,
+      officeOutTime: newTime,
+    }));
+    showToast(`Drop timing updated to ${newTime}`);
   };
 
   const unreadCount = notifications.filter((n) => n.unread).length;
@@ -99,10 +126,41 @@ export default function App() {
           <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
           <span className="font-semibold text-white tracking-tight">TCS Digital Bus Pass</span>
           <span className="text-slate-400">• Mobile App View</span>
+          {transitMode === 'drop' && (
+            <span className="ml-1.5 px-2 py-0.5 rounded bg-purple-900/60 text-purple-300 border border-purple-700/50 text-[11px] font-semibold">
+              {(passData.dropLabel || 'Drop').replace(/time/i, '').replace(/[-:]+$/, '').trim() || 'Drop'} Mode Active
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
+          {/* Desktop Mode Switcher */}
+          <div className="flex bg-slate-900 border border-slate-700 rounded-lg p-0.5 mr-1">
+            <button
+              onClick={() => {
+                setTransitMode('pickup');
+                showToast('Viewing Bus Pass timing');
+              }}
+              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
+                transitMode === 'pickup' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Pickup
+            </button>
+            <button
+              onClick={() => {
+                setTransitMode('drop');
+                showToast(`Viewing ${passData.dropLabel || 'Drop'} timing`);
+              }}
+              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
+                transitMode === 'drop' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {(passData.dropLabel || 'Drop').replace(/time/i, '').replace(/[-:]+$/, '').trim() || 'Drop'}
+            </button>
+          </div>
+
           <button
-            onClick={() => setEditModalOpen(true)}
+            onClick={handleOpenEdit}
             className="flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition-colors cursor-pointer"
           >
             <Edit3 className="w-3.5 h-3.5 text-purple-400" />
@@ -122,6 +180,8 @@ export default function App() {
       <main className="w-full max-w-md min-h-screen min-h-dvh bg-white flex flex-col shadow-none md:shadow-2xl md:my-6 md:rounded-3xl overflow-hidden relative">
         <BusPassCard
           pass={passData}
+          transitMode={transitMode}
+          onSelectTransitMode={setTransitMode}
           onOpenMenu={() => setDrawerOpen(true)}
           onOpenNotifications={() => setNotificationOpen(true)}
           unreadCount={unreadCount}
@@ -141,9 +201,15 @@ export default function App() {
         pass={passData}
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        onOpenEdit={() => setEditModalOpen(true)}
+        onOpenEdit={handleOpenEdit}
+        onOpenEditDrop={handleOpenEditDrop}
         onOpenCode={() => setCodeModalOpen(true)}
         onOpenRouteMap={() => setRouteMapOpen(true)}
+        transitMode={transitMode}
+        onSelectTransitMode={(mode) => {
+          setTransitMode(mode);
+          showToast(mode === 'drop' ? 'Switched to Drop pass timing' : 'Switched to Bus Pass timing');
+        }}
       />
 
       <NotificationModal
@@ -156,6 +222,7 @@ export default function App() {
       <EditPassModal
         pass={passData}
         isOpen={editModalOpen}
+        highlightDrop={highlightDropInEdit}
         onClose={() => setEditModalOpen(false)}
         onSave={(updated) => {
           setPassData(updated);
@@ -166,12 +233,14 @@ export default function App() {
 
       <ReactNativeCodeModal
         pass={passData}
+        transitMode={transitMode}
         isOpen={codeModalOpen}
         onClose={() => setCodeModalOpen(false)}
       />
 
       <LiveRouteMapModal
         pass={passData}
+        transitMode={transitMode}
         isOpen={routeMapOpen}
         onClose={() => setRouteMapOpen(false)}
       />

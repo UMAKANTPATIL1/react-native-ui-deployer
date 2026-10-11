@@ -6,19 +6,33 @@ interface LiveRouteMapModalProps {
   pass: BusPassData;
   isOpen: boolean;
   onClose: () => void;
+  transitMode?: 'pickup' | 'drop';
 }
 
-export const LiveRouteMapModal: React.FC<LiveRouteMapModalProps> = ({ pass, isOpen, onClose }) => {
+export const LiveRouteMapModal: React.FC<LiveRouteMapModalProps> = ({ pass, isOpen, onClose, transitMode = 'pickup' }) => {
   if (!isOpen) return null;
 
-  const stops = [
+  const isDrop = transitMode === 'drop';
+
+  const morningStops = [
     { name: 'Thane Railway Station (East Kopari)', time: '09:20 AM', type: 'Origin / Boarding', active: true },
     { name: 'Teen Hath Naka Junction', time: '09:35 AM', type: 'Transit Stop', active: false },
     { name: 'Nitin Casting Flyover', time: '09:48 AM', type: 'Transit Stop', active: false },
     { name: 'Cadbury Junction / Eastern Express', time: '09:58 AM', type: 'Transit Stop', active: false },
     { name: 'Majiwada Flyover', time: '10:05 AM', type: 'Transit Stop', active: false },
-    { name: 'TCS Olympus, Hiranandani Estate, Ghodbunder Rd', time: '10:20 AM', type: 'Destination Office', active: true },
+    { name: 'TCS Olympus, Hiranandani Estate, Ghodbunder Rd', time: pass.officeInTime ? `${pass.officeInTime} AM` : '10:20 AM', type: 'Destination Office', active: true },
   ];
+
+  const eveningStops = [
+    { name: 'TCS Olympus (Transport Bay B)', time: pass.dropTime || pass.officeOutTime || '20:45', type: 'Origin / Boarding', active: true },
+    { name: 'Majiwada Flyover Junction', time: '21:05', type: 'Transit Drop', active: false },
+    { name: 'Cadbury Junction', time: '21:15', type: 'Transit Drop', active: false },
+    { name: 'Nitin Casting Junction', time: '21:25', type: 'Transit Drop', active: false },
+    { name: 'Teen Hath Naka', time: '21:35', type: 'Transit Drop', active: false },
+    { name: 'Thane Railway Station (East Kopari)', time: '21:45', type: 'Final Drop Destination', active: true },
+  ];
+
+  const stops = isDrop ? eveningStops : morningStops;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs">
@@ -28,8 +42,12 @@ export const LiveRouteMapModal: React.FC<LiveRouteMapModalProps> = ({ pass, isOp
       >
         <div className="bg-gradient-to-r from-purple-800 to-indigo-900 px-5 py-3.5 text-white flex items-center justify-between">
           <div>
-            <h3 className="font-bold text-sm">Route B - FAST Corridor</h3>
-            <p className="text-[11px] text-purple-200">Thane Stn. E Kopari ⇄ TCS Olympus</p>
+            <h3 className="font-bold text-sm">
+              Route B - FAST Corridor {isDrop ? '(Evening Drop)' : '(Morning Pickup)'}
+            </h3>
+            <p className="text-[11px] text-purple-200">
+              {isDrop ? 'TCS Olympus ➔ Thane Stn. E Kopari' : 'Thane Stn. E Kopari ⇄ TCS Olympus'}
+            </p>
           </div>
           <button
             onClick={onClose}

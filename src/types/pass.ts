@@ -7,6 +7,10 @@ export interface BusPassData {
   endDate: string;
   officeInTime: string;
   officeOutTime: string;
+  dropTime?: string;
+  dropLabel?: string;
+  pickupTime?: string;
+  pickupLabel?: string;
   origin: string;
   destination: string;
   routeDescription: string;

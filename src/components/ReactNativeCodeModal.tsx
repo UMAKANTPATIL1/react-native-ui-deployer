@@ -6,9 +6,10 @@ interface ReactNativeCodeModalProps {
   pass: BusPassData;
   isOpen: boolean;
   onClose: () => void;
+  transitMode?: 'pickup' | 'drop';
 }
 
-export const ReactNativeCodeModal: React.FC<ReactNativeCodeModalProps> = ({ pass, isOpen, onClose }) => {
+export const ReactNativeCodeModal: React.FC<ReactNativeCodeModalProps> = ({ pass, isOpen, onClose, transitMode = 'pickup' }) => {
   const [activeTab, setActiveTab] = useState<'rn' | 'netlify'>('rn');
   const [copiedRN, setCopiedRN] = useState(false);
   const [copiedNetlify, setCopiedNetlify] = useState(false);
@@ -50,6 +51,8 @@ export default function BusPassScreen() {
     endDate: "${pass.endDate}",
     officeInTime: "${pass.officeInTime}",
     officeOutTime: "${pass.officeOutTime}",
+    dropTime: "${pass.dropTime || pass.officeOutTime}",
+    dropLabel: "${pass.dropLabel || 'Drop Time'}",
     origin: "${pass.origin}",
     destination: "${pass.destination}",
     routeDescription: "${pass.routeDescription}",
@@ -97,10 +100,16 @@ export default function BusPassScreen() {
 
           <View style={styles.routeBannerDivider} />
 
-          <View style={styles.timeRow}>
-            <Text style={styles.timeText}>Office In Time- {passDetails.officeInTime}</Text>
-            <Text style={styles.timeText}>Office Out Time-{passDetails.officeOutTime}</Text>
-          </View>
+          {transitMode === 'drop' ? (
+            <View style={styles.timeRowCenter}>
+              <Text style={styles.timeTextCenter}>{(pass.dropLabel || 'Drop Time').trim().replace(/[-:]+$/, '').trim()}- {passDetails.dropTime}</Text>
+            </View>
+          ) : (
+            <View style={styles.timeRow}>
+              <Text style={styles.timeText}>Office In Time- {passDetails.officeInTime}</Text>
+              <Text style={styles.timeText}>Office Out Time-{passDetails.officeOutTime}</Text>
+            </View>
+          )}
         </LinearGradient>
 
         {/* Main Confirmed Bus Pass Card */}
@@ -290,10 +299,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 4,
   },
+  timeRowCenter: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
   timeText: {
     color: '#FFFFFF',
     fontSize: 12.5,
     fontWeight: '400',
+  },
+  timeTextCenter: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   passCard: {
     marginTop: 18,

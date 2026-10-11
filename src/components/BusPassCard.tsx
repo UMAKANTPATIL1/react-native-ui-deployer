@@ -10,6 +10,8 @@ interface BusPassCardProps {
   onOpenMenu: () => void;
   onOpenNotifications: () => void;
   unreadCount?: number;
+  transitMode?: 'pickup' | 'drop';
+  onSelectTransitMode?: (mode: 'pickup' | 'drop') => void;
 }
 
 export const BusPassCard: React.FC<BusPassCardProps> = ({
@@ -17,12 +19,19 @@ export const BusPassCard: React.FC<BusPassCardProps> = ({
   onOpenMenu,
   onOpenNotifications,
   unreadCount = 1,
+  transitMode = 'pickup',
+  onSelectTransitMode,
 }) => {
   const [showQR, setShowQR] = useState(false);
   const [qrSvg, setQrSvg] = useState<string>('');
 
   useEffect(() => {
-    const qrData = `TCS_BUS_PASS\nEmpId: ${pass.employeeId}\nName: ${pass.name}\nRoute: ${pass.routeType}\nStop: ${pass.busStopName}\nValid: ${pass.startDate} - ${pass.endDate}\nShift: ${pass.officeInTime} - ${pass.officeOutTime}`;
+    const isDrop = transitMode === 'drop';
+    const dropLabelFormatted = (pass.dropLabel || 'Drop Time').trim().replace(/[-:]+$/, '').trim();
+    const timeInfo = isDrop
+      ? `${dropLabelFormatted}: ${pass.dropTime || pass.officeOutTime}`
+      : `Shift: ${pass.officeInTime} - ${pass.officeOutTime}`;
+    const qrData = `TCS_BUS_PASS\nTrip: ${isDrop ? 'DROP' : 'PICKUP'}\nEmpId: ${pass.employeeId}\nName: ${pass.name}\nRoute: ${pass.routeType}\nStop: ${pass.busStopName}\nValid: ${pass.startDate} - ${pass.endDate}\n${timeInfo}`;
     QRCode.toString(qrData, {
       type: 'svg',
       margin: 1,
@@ -37,28 +46,27 @@ export const BusPassCard: React.FC<BusPassCardProps> = ({
       .catch((err) => {
         console.error('QR generation error', err);
       });
-  }, [pass]);
+  }, [pass, transitMode]);
   return (
     <div className="w-full bg-white flex flex-col min-h-full font-sans antialiased text-slate-900 select-none">
       {/* Top App Header with safe-area padding for mobile */}
-      <header className="bg-[#6A149B] px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3.5 text-white flex items-center justify-between shadow-sm sticky top-0 z-20">
-        <div className="flex items-center gap-3 sm:gap-4">
-          <button
-            onClick={onOpenMenu}
-            aria-label="Open Navigation Menu"
-            className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 active:bg-white/20 transition-colors -ml-1 text-white cursor-pointer"
-          >
-            <Menu className="w-6 h-6 stroke-[2.2]" />
-          </button>
-          <h1 className="text-[18px] sm:text-[19px] font-semibold tracking-tight text-white">
-            Digital Bus Pass
-          </h1>
-        </div>
+      <header className="bg-[#6A149B] px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3.5 text-white grid grid-cols-[40px_1fr_40px] items-center shadow-sm sticky top-0 z-20">
+        <button
+          onClick={onOpenMenu}
+          aria-label="Open Navigation Menu"
+          className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 active:bg-white/20 transition-colors -ml-1 text-white cursor-pointer"
+        >
+          <Menu className="w-6 h-6 stroke-[2.2]" />
+        </button>
+
+        <h1 className="text-[18px] sm:text-[19px] font-semibold tracking-tight text-white text-center truncate px-2">
+          Digital Bus Pass
+        </h1>
 
         <button
           onClick={onOpenNotifications}
           aria-label="Notifications"
-          className="relative w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 active:bg-white/20 transition-colors -mr-1 text-white cursor-pointer"
+          className="relative w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 active:bg-white/20 transition-colors -mr-1 text-white cursor-pointer justify-self-end"
         >
           <Bell className="w-[22px] h-[22px] stroke-[2]" />
           {unreadCount > 0 && (
@@ -88,11 +96,17 @@ export const BusPassCard: React.FC<BusPassCardProps> = ({
             {/* Separator */}
             <div className="border-t border-white/25 mt-3 mb-2.5"></div>
 
-            {/* Shift In / Out Times */}
-            <div className="flex items-center justify-between text-[12.5px] font-medium tracking-tight px-1 text-white/95">
-              <span>Office In Time- {pass.officeInTime}</span>
-              <span>Office Out Time-{pass.officeOutTime}</span>
-            </div>
+            {/* Shift In / Out Times or Centered Drop Time */}
+            {transitMode === 'drop' ? (
+              <div className="flex items-center justify-center text-[16px] md:text-[15.5px] font-semibold tracking-tight px-1 text-white text-center py-0.5">
+                <span>{(pass.dropLabel || 'Drop').trim().replace(/[-:]+$/, '').trim()}- {pass.dropTime || pass.officeOutTime}</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between text-[15.5px] font-medium tracking-tight px-1 text-white/95">
+                <span>Office In Time- {pass.officeInTime}</span>
+                <span>Office Out Time-{pass.officeOutTime}</span>
+              </div>
+            )}
           </div>
 
           {/* Confirmed Bus Pass Card with Smooth Fade/Scale Transition */}
@@ -105,11 +119,10 @@ export const BusPassCard: React.FC<BusPassCardProps> = ({
 
             {/* DETAILS VIEW - Fades out smoothly when QR is active */}
             <div
-              className={`w-full pb-4 transition-all duration-300 ease-out ${
-                showQR
-                  ? 'opacity-0 scale-95 pointer-events-none absolute inset-0'
-                  : 'opacity-100 scale-100 pointer-events-auto relative'
-              }`}
+              className={`w-full pb-4 transition-all duration-300 ease-out ${showQR
+                ? 'opacity-0 scale-95 pointer-events-none absolute inset-0'
+                : 'opacity-100 scale-100 pointer-events-auto relative'
+                }`}
             >
               {/* Card Header Title */}
               <div className="pt-4 pb-3.5 px-4 text-center">
@@ -126,8 +139,8 @@ export const BusPassCard: React.FC<BusPassCardProps> = ({
                 {/* Row 1: Name & Employee ID */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <div className="text-[12.5px] text-slate-400 font-medium">Name</div>
-                    <div className="text-[15px] font-semibold text-slate-900 tracking-tight mt-0.5">
+                    <div className="text-[12.5px] text-slate-400 font-medium ">Name</div>
+                    <div className="text-[15px] font-semibold text-slate-900 uppercase tracking-tight mt-0.5">
                       {pass.name}
                     </div>
                   </div>
@@ -177,7 +190,7 @@ export const BusPassCard: React.FC<BusPassCardProps> = ({
 
               {/* Route description notes */}
               <div className="px-5 text-center">
-                <p className="text-[12.5px] text-slate-700 leading-snug">
+                <p className="text-[15.5px] text-slate-700 leading-snug">
                   {pass.routeDescription}
                 </p>
               </div>
@@ -185,11 +198,10 @@ export const BusPassCard: React.FC<BusPassCardProps> = ({
 
             {/* QR CODE VIEW - Fades and scales in smoothly when QR is active */}
             <div
-              className={`absolute inset-0 flex flex-col items-center justify-center p-6 cursor-pointer transition-all duration-300 ease-out ${
-                showQR
-                  ? 'opacity-100 scale-100 pointer-events-auto'
-                  : 'opacity-0 scale-95 pointer-events-none'
-              }`}
+              className={`absolute inset-0 flex flex-col items-center justify-center p-6 cursor-pointer transition-all duration-300 ease-out ${showQR
+                ? 'opacity-100 scale-100 pointer-events-auto'
+                : 'opacity-0 scale-95 pointer-events-none'
+                }`}
               onClick={() => setShowQR(false)}
               title="Click to view pass details"
             >
@@ -209,7 +221,7 @@ export const BusPassCard: React.FC<BusPassCardProps> = ({
               {showQR ? (
                 <>
                   <FileText className="w-4 h-4 text-purple-200" />
-                  <span>View Pass Details</span>
+                  <span>View Details</span>
                 </>
               ) : (
                 <>
@@ -226,6 +238,7 @@ export const BusPassCard: React.FC<BusPassCardProps> = ({
           <TcsLogo />
         </div>
       </main>
+
     </div>
   );
 };
